@@ -17,7 +17,7 @@ Computes:
 
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 # WaveTrend parameters (LazyBear default)
 _WT_CHANNEL_LEN = 9
@@ -110,12 +110,12 @@ def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
 
 def _wavetrend(
     high: pd.Series, low: pd.Series, close: pd.Series
-) -> tuple[pd.Series, pd.Series]:
+) -> Tuple[pd.Series, pd.Series]:
     """LazyBear WaveTrend oscillator."""
     hlc3 = (high + low + close) / 3
     esa = _ema(hlc3, _WT_CHANNEL_LEN)
     d = _ema((hlc3 - esa).abs(), _WT_CHANNEL_LEN)
-    ci = (hlc3 - esa) / (0.015 * d.replace(0, np.nan)).fillna(method="ffill")
+    ci = (hlc3 - esa) / (0.015 * d.replace(0, np.nan)).ffill()
     wt1 = _ema(ci, _WT_AVG_LEN)
     wt2 = _sma(wt1, _WT_MA_LEN)
     return wt1, wt2
@@ -137,7 +137,7 @@ def _mfi(open_: pd.Series, close: pd.Series) -> pd.Series:
 
 def _detect_crosses(
     wt1: pd.Series, wt2: pd.Series, lookback: int = 3
-) -> tuple[bool, bool, bool, bool]:
+) -> Tuple[bool, bool, bool, bool]:
     buy_signal = sell_signal = strong_buy = strong_sell = False
 
     wt1_vals = wt1.values
