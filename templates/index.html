@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSYNDICA · DeFi Analysis · BTC Cypher</title>
+<style>
+:root {
+  --bg:         #07070F;
+  --truth:      #F7931A;
+  --truth-lo:   rgba(247,147,26,0.14);
+  --gold:       #FFD700;
+  --gold-lo:    rgba(255,215,0,0.12);
+  --noise:      #FF5555;
+  --noise-lo:   rgba(255,85,85,0.08);
+  --green:      #39FF82;
+  --green-lo:   rgba(57,255,130,0.1);
+  --text:       #F0F0FF;
+  --muted:      #9090B8;
+  --div:        #121228;
+  --border:     #1E1E38;
+  --font:       'Courier New', Courier, monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(--font); color:var(--text); overflow-x:hidden; }
+
+/* ── STARFIELD ── */
+#stars { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+
+/* ── LAYOUT ── */
+.wrap { position:relative; z-index:1; max-width:1280px; margin:0 auto; padding:0 24px 60px; }
+
+/* ── HEADER ── */
+#hdr {
+  position:sticky; top:0; z-index:20;
+  padding:14px 24px;
+  background:linear-gradient(180deg,rgba(7,7,15,1) 70%,transparent);
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.brand { display:flex; align-items:center; gap:14px; }
+.brand .logo { font-size:15px; letter-spacing:5px; color:var(--gold); font-weight:bold; }
+.brand .sep  { width:1px; height:18px; background:var(--border); }
+.brand .sub  { font-size:11px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; }
+.ver { font-size:10px; letter-spacing:2px; color:#44445A; }
+
+/* ── CONTROLS ── */
+#ctrl {
+  display:flex; align-items:center; gap:10px;
+  padding:20px 0 28px;
+}
+.sel {
+  background:rgba(12,12,26,0.9); border:1px solid var(--border);
+  color:var(--muted); font-family:var(--font); font-size:11px;
+  letter-spacing:2px; text-transform:uppercase; padding:9px 14px;
+  border-radius:4px; cursor:pointer; appearance:none;
+  transition:border-color .2s, color .2s;
+}
+.sel:focus, .sel:hover { outline:none; border-color:var(--gold); color:var(--gold); }
+.run-btn {
+  background:var(--truth); border:none; color:#000;
+  font-family:var(--font); font-size:12px; font-weight:bold;
+  letter-spacing:3px; text-transform:uppercase;
+  padding:10px 28px; border-radius:4px; cursor:pointer;
+  transition:opacity .2s, transform .1s;
+}
+.run-btn:hover   { opacity:.85; }
+.run-btn:active  { transform:scale(0.97); }
+.run-btn:disabled { opacity:.4; cursor:not-allowed; }
+#status { font-size:11px; letter-spacing:2px; color:var(--muted); }
+#status.loading { color:var(--gold); }
+#status.error   { color:var(--noise); }
+
+/* ── PRICE HERO ── */
+#hero {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;
+  margin-bottom:28px;
+}
+.hero-card {
+  background:rgba(12,12,26,0.7); border:1px solid var(--border);
+  border-radius:6px; padding:16px 20px;
+}
+.hero-card .label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.hero-card .val   { font-size:22px; font-weight:bold; color:var(--text); }
+.hero-card .val.btc  { color:var(--truth); }
+.hero-card .val.fg   { }
+.hero-card .sub-val  { font-size:11px; color:var(--muted); margin-top:3px; }
+.fg-ef  { color:#39FF82; }
+.fg-f   { color:#8BE28B; }
+.fg-n   { color:var(--muted); }
+.fg-g   { color:#FFB347; }
+.fg-eg  { color:var(--noise); }
+
+/* ── GRID ── */
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
+@media(max-width:900px) { .grid2,.grid3 { grid-template-columns:1fr; } }
+
+/* ── CARD ── */
+.card {
+  background:rgba(12,12,26,0.7); border:1px solid var(--border);
+  border-radius:6px; padding:20px;
+}
+.card.truth  { border-color:rgba(247,147,26,.3); background:rgba(20,11,0,0.7); }
+.card.green  { border-color:rgba(57,255,130,.2); background:rgba(0,18,8,0.7); }
+.card.noise  { border-color:rgba(255,85,85,.2);  background:rgba(25,4,4,0.7); }
+.card.gold   { border-color:rgba(255,215,0,.25); background:rgba(18,14,0,0.7); }
+.card-title  {
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:14px;
+  display:flex; align-items:center; gap:8px;
+}
+.card-title .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dot-truth  { background:var(--truth); }
+.dot-green  { background:var(--green); }
+.dot-noise  { background:var(--noise); }
+.dot-gold   { background:var(--gold); }
+.dot-muted  { background:var(--muted); }
+
+/* ── SIGNAL BADGE ── */
+.sig {
+  display:inline-block; padding:5px 14px;
+  border-radius:3px; font-size:12px; font-weight:bold;
+  letter-spacing:3px; text-transform:uppercase; margin-bottom:12px;
+}
+.sig.BUY         { background:rgba(57,255,130,.15); color:var(--green); border:1px solid rgba(57,255,130,.3); }
+.sig.STRONG_BUY  { background:rgba(255,215,0,.15);  color:var(--gold);  border:1px solid rgba(255,215,0,.4); }
+.sig.SELL        { background:rgba(255,85,85,.12);  color:var(--noise); border:1px solid rgba(255,85,85,.3); }
+.sig.STRONG_SELL { background:rgba(255,40,40,.18);  color:#FF3333;      border:1px solid rgba(255,40,40,.5); }
+.sig.HOLD        { background:rgba(144,144,184,.1); color:var(--muted); border:1px solid var(--border); }
+
+/* ── RISK BADGE ── */
+.risk {
+  display:inline-block; padding:6px 18px; border-radius:3px;
+  font-size:13px; font-weight:bold; letter-spacing:3px; text-transform:uppercase;
+}
+.risk.Low       { background:rgba(57,255,130,.12); color:var(--green); border:1px solid rgba(57,255,130,.3); }
+.risk.Moderate  { background:rgba(255,215,0,.12);  color:var(--gold);  border:1px solid rgba(255,215,0,.3); }
+.risk.High      { background:rgba(255,147,26,.15); color:var(--truth); border:1px solid rgba(247,147,26,.4); }
+.risk.Very_High { background:rgba(255,40,40,.18);  color:#FF3333;      border:1px solid rgba(255,40,40,.4); }
+
+/* ── ZONE BADGE ── */
+.zone { display:inline-block; padding:4px 10px; border-radius:3px; font-size:10px; letter-spacing:2px; text-transform:uppercase; }
+.zone.SO  { background:rgba(57,255,130,.15);  color:var(--green); border:1px solid rgba(57,255,130,.25); }
+.zone.O   { background:rgba(100,220,160,.12); color:#70D090;      border:1px solid rgba(100,200,140,.2); }
+.zone.N   { background:rgba(144,144,184,.08); color:var(--muted); border:1px solid var(--border); }
+.zone.OB  { background:rgba(255,147,26,.12);  color:var(--truth); border:1px solid rgba(247,147,26,.3); }
+.zone.SOB { background:rgba(255,40,40,.15);   color:var(--noise); border:1px solid rgba(255,85,85,.3); }
+
+/* ── METRICS ROW ── */
+.metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:10px; margin-top:10px; }
+.metric .m-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.metric .m-val   { font-size:16px; font-weight:bold; }
+.metric .m-val.pos { color:var(--green); }
+.metric .m-val.neg { color:var(--noise); }
+.metric .m-val.neutral { color:var(--muted); }
+.metric .m-val.gold { color:var(--gold); }
+.metric .m-val.btc  { color:var(--truth); }
+
+/* ── BOOL INDICATORS ── */
+.bools { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.bool-tag {
+  font-size:10px; letter-spacing:1px; padding:4px 10px; border-radius:3px;
+}
+.bool-tag.on  { background:rgba(57,255,130,.12); color:var(--green); border:1px solid rgba(57,255,130,.25); }
+.bool-tag.off { background:rgba(20,20,40,.5);    color:#333355;      border:1px solid #1a1a32; }
+
+/* ── TREND BADGE ── */
+.trend {
+  display:inline-block; padding:4px 12px; border-radius:3px;
+  font-size:10px; letter-spacing:2px; text-transform:uppercase;
+}
+.trend.su  { background:rgba(57,255,130,.12); color:var(--green); border:1px solid rgba(57,255,130,.25); }
+.trend.u   { background:rgba(100,220,130,.1);  color:#70D090;     border:1px solid rgba(100,200,130,.2); }
+.trend.r   { background:rgba(144,144,184,.08); color:var(--muted); border:1px solid var(--border); }
+.trend.d   { background:rgba(255,100,50,.1);   color:var(--truth); border:1px solid rgba(255,100,50,.25); }
+.trend.sd  { background:rgba(255,40,40,.12);   color:var(--noise); border:1px solid rgba(255,85,85,.25); }
+
+/* ── VPA SIGNAL ── */
+.vpa-sig { font-size:13px; font-weight:bold; color:var(--text); margin-bottom:8px; }
+.vpa-sig.bull { color:var(--green); }
+.vpa-sig.bear { color:var(--noise); }
+.vpa-sig.neutral { color:var(--muted); }
+
+/* ── S/R LEVELS ── */
+.sr-group { margin-top:10px; }
+.sr-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.sr-levels { display:flex; flex-wrap:wrap; gap:6px; }
+.sr-pill {
+  font-size:11px; padding:4px 10px; border-radius:3px;
+}
+.sr-pill.res { background:rgba(255,85,85,.1); color:var(--noise); border:1px solid rgba(255,85,85,.2); }
+.sr-pill.sup { background:rgba(57,255,130,.1); color:var(--green); border:1px solid rgba(57,255,130,.2); }
+.sr-pill.near { border-width:1px; filter:brightness(1.3); font-weight:bold; }
+
+/* ── EMA ROW ── */
+.ema-row { display:flex; gap:12px; margin-top:10px; flex-wrap:wrap; }
+.ema-item { font-size:11px; }
+.ema-item span { color:var(--muted); }
+
+/* ── AI INSIGHTS ── */
+#insights-wrap { margin-bottom:16px; }
+.insight-item {
+  display:flex; gap:14px; align-items:flex-start;
+  padding:14px 0; border-bottom:1px solid rgba(255,255,255,.04);
+}
+.insight-item:last-child { border-bottom:none; }
+.ins-num {
+  flex-shrink:0; width:22px; height:22px;
+  border:1px solid var(--border); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:var(--muted);
+}
+.ins-text { font-size:12px; line-height:1.7; color:var(--text); }
+.ins-text.confluence { color:var(--gold); }
+
+/* ── CYCLE SUMMARY ── */
+#cycle-text { font-size:13px; line-height:1.8; color:var(--muted); font-style:italic; }
+#cycle-text strong { color:var(--truth); font-style:normal; }
+
+/* ── CANDLE TABLE ── */
+.candle-table { width:100%; border-collapse:collapse; font-size:11px; }
+.candle-table th {
+  text-align:left; padding:8px 10px;
+  font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+  border-bottom:1px solid var(--border);
+}
+.candle-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.03); }
+.candle-table tr:last-child td { border-bottom:none; }
+.bull-row { color:var(--green); }
+.bear-row { color:var(--noise); }
+.candle-sig { font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+
+/* ── PROXIMITY NOTE ── */
+#prox-note {
+  margin-top:8px; padding:8px 12px;
+  background:rgba(255,215,0,.06); border:1px solid rgba(255,215,0,.2);
+  border-radius:4px; font-size:11px; color:var(--gold); letter-spacing:1px;
+  display:none;
+}
+#prox-note.vis { display:block; }
+
+/* ── PLACEHOLDER ── */
+.placeholder {
+  padding:60px 20px; text-align:center;
+  font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#33334A;
+}
+.placeholder .big { font-size:32px; margin-bottom:16px; opacity:.3; }
+
+/* ── HALVING BADGE ── */
+.halving {
+  display:inline-block; padding:4px 12px; border-radius:3px;
+  font-size:10px; letter-spacing:1px;
+  background:rgba(247,147,26,.08); color:var(--truth);
+  border:1px solid rgba(247,147,26,.2);
+}
+
+/* ── DIVIDER ── */
+hr.div { border:none; border-top:1px solid var(--border); margin:8px 0; }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div id="hdr">
+  <div class="brand">
+    <div class="logo">PSYNDICA</div>
+    <div class="sep"></div>
+    <div class="sub">DeFi Analysis · BTC Cypher</div>
+  </div>
+  <div class="ver">v1.0 · BTC ANALYSER</div>
+</div>
+
+<div class="wrap">
+
+  <!-- CONTROLS -->
+  <div id="ctrl">
+    <select class="sel" id="sel-range">
+      <option value="1mo">1 Month</option>
+      <option value="3mo" selected>3 Months</option>
+      <option value="6mo">6 Months</option>
+      <option value="1y">1 Year</option>
+    </select>
+    <select class="sel" id="sel-interval">
+      <option value="1d" selected>Daily</option>
+      <option value="1h">1 Hour</option>
+      <option value="4h">4 Hour</option>
+    </select>
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">▶ &nbsp;Run Analysis</button>
+    <span id="status"></span>
+  </div>
+
+  <!-- PRICE HERO ROW -->
+  <div id="hero">
+    <div class="hero-card" id="hc-price">
+      <div class="label">BTC / USD</div>
+      <div class="val btc" id="h-price">—</div>
+      <div class="sub-val" id="h-change">—</div>
+    </div>
+    <div class="hero-card" id="hc-fg">
+      <div class="label">Fear &amp; Greed</div>
+      <div class="val" id="h-fg">—</div>
+      <div class="sub-val" id="h-fg-label">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="label">Market Cap</div>
+      <div class="val" id="h-mcap" style="font-size:16px">—</div>
+      <div class="sub-val" id="h-dom">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="label">ATH Distance</div>
+      <div class="val" id="h-ath" style="font-size:18px">—</div>
+      <div class="sub-val" id="h-ath-price">ATH: —</div>
+    </div>
+    <div class="hero-card">
+      <div class="label">Halving Phase</div>
+      <div class="sub-val" id="h-halving" style="margin-top:8px;font-size:11px;line-height:1.6">—</div>
+    </div>
+  </div>
+
+  <!-- PLACEHOLDER -->
+  <div id="placeholder">
+    <div class="placeholder">
+      <div class="big">◎</div>
+      Select a timeframe and hit Run Analysis to generate the institutional-grade BTC report.
+    </div>
+  </div>
+
+  <!-- RESULTS (hidden until data loads) -->
+  <div id="results" style="display:none">
+
+    <!-- ROW 1: VuManChu + VPA Signal -->
+    <div class="grid2">
+
+      <!-- VUMANCHU -->
+      <div class="card truth">
+        <div class="card-title"><div class="dot dot-truth"></div>VuManChu Cipher B</div>
+        <div id="vu-signal-badge"></div>
+        <div id="vu-zone-badge" style="margin-bottom:14px"></div>
+        <div class="metrics" id="vu-metrics"></div>
+        <hr class="div" style="margin-top:14px">
+        <div class="bools" id="vu-bools"></div>
+      </div>
+
+      <!-- VPA -->
+      <div class="card green">
+        <div class="card-title"><div class="dot dot-green"></div>Volume Price Analysis · Coulling</div>
+        <div id="vpa-sig-label" class="vpa-sig" style="margin-bottom:8px"></div>
+        <div id="vpa-trend-badge" style="margin-bottom:12px"></div>
+        <div id="prox-note"></div>
+        <div class="sr-group">
+          <div class="sr-label">Resistance</div>
+          <div class="sr-levels" id="sr-res"></div>
+        </div>
+        <div class="sr-group" style="margin-top:12px">
+          <div class="sr-label">Support</div>
+          <div class="sr-levels" id="sr-sup"></div>
+        </div>
+        <div class="ema-row" id="ema-row"></div>
+      </div>
+
+    </div>
+
+    <!-- ROW 2: AI Cycle Summary + Risk -->
+    <div class="grid2">
+
+      <div class="card gold">
+        <div class="card-title"><div class="dot dot-gold"></div>Cycle Summary</div>
+        <p id="cycle-text">—</p>
+      </div>
+
+      <div class="card noise">
+        <div class="card-title"><div class="dot dot-noise"></div>Risk Assessment</div>
+        <div id="risk-badge" style="margin-bottom:14px"></div>
+        <p id="risk-rationale" style="font-size:12px;line-height:1.7;color:var(--muted)">—</p>
+      </div>
+
+    </div>
+
+    <!-- ROW 3: AI Insights full width -->
+    <div class="card" id="insights-wrap" style="margin-bottom:16px">
+      <div class="card-title"><div class="dot dot-muted"></div>AI Insights · Cross-Layer Analysis</div>
+      <div id="insights-list"></div>
+    </div>
+
+    <!-- ROW 4: Recent Candles -->
+    <div class="card">
+      <div class="card-title"><div class="dot dot-muted"></div>Recent Candles · VPA Breakdown</div>
+      <table class="candle-table" id="candle-tbl">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Direction</th>
+            <th>VPA Signal</th>
+            <th>Volume</th>
+            <th>Vol Ratio</th>
+            <th>Body %</th>
+          </tr>
+        </thead>
+        <tbody id="candle-body"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /results -->
+
+</div><!-- /wrap -->
+
+<script>
+// ── STARFIELD ────────────────────────────────────────────
+(function(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  function init(){
+    c.width = innerWidth; c.height = innerHeight;
+    const pts = Array.from({length:120},()=>({
+      x:Math.random()*c.width, y:Math.random()*c.height,
+      r:Math.random()*0.65+0.1, a:Math.random()*0.18+0.03
+    }));
+    ctx.clearRect(0,0,c.width,c.height);
+    pts.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(160,160,255,${p.a})`; ctx.fill();
+    });
+  }
+  init();
+  window.addEventListener('resize',init);
+})();
+
+// ── HELPERS ──────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = n => n == null ? '—' : Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtK = n => { if(n==null) return '—'; if(n>=1e12) return '$'+(n/1e12).toFixed(2)+'T'; if(n>=1e9) return '$'+(n/1e9).toFixed(1)+'B'; return '$'+fmt(n); }
+const fmtPct = (n,sign=true) => n==null?'—':(sign&&n>0?'+':'')+Number(n).toFixed(2)+'%';
+
+function fgClass(idx){
+  if(idx<=24) return 'fg-ef';
+  if(idx<=44) return 'fg-f';
+  if(idx<=55) return 'fg-n';
+  if(idx<=74) return 'fg-g';
+  return 'fg-eg';
+}
+
+function sigClass(sig){
+  if(!sig) return 'HOLD';
+  return sig.replace(' ','_').replace('/','').replace(' ','_');
+}
+
+function trendClass(t){
+  const m = {strong_uptrend:'su',uptrend:'u',ranging:'r',downtrend:'d',strong_downtrend:'sd'};
+  return m[t]||'r';
+}
+function trendLabel(t){
+  const m = {strong_uptrend:'Strong Uptrend',uptrend:'Uptrend',ranging:'Ranging',downtrend:'Downtrend',strong_downtrend:'Strong Downtrend'};
+  return m[t]||t;
+}
+
+function zoneClass(z){
+  const m = {'Strong Oversold':'SO','Oversold':'O','Neutral':'N','Overbought':'OB','Strong Overbought':'SOB'};
+  return m[z]||'N';
+}
+
+const VPA_BULL = new Set(['selling_climax','stopping_volume','validated_bull','accumulation']);
+const VPA_BEAR = new Set(['buying_climax','topping_volume','validated_bear','distribution']);
+function vpaSentiment(sig){ return VPA_BULL.has(sig)?'bull':VPA_BEAR.has(sig)?'bear':'neutral'; }
+function vpaLabel(sig){ return sig?sig.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'—'; }
+
+// ── RENDER ───────────────────────────────────────────────
+function render(d){
+  const oc = d.onchain;
+  const vu = d.vumanchu;
+  const vp = d.vpa;
+  const an = d.analysis;
+
+  // Hero
+  $('h-price').textContent = '$'+fmt(oc.current_price);
+  const chg = oc.price_change_pct;
+  $('h-change').textContent = fmtPct(chg)+' (period)';
+  $('h-change').style.color = chg>=0?'var(--green)':'var(--noise)';
+
+  const fgi = oc.fear_greed_index;
+  $('h-fg').innerHTML = `<span class="${fgClass(fgi)}">${fgi}</span>`;
+  $('h-fg-label').textContent = oc.fear_greed_label||'—';
+  $('h-fg-label').className = 'sub-val '+fgClass(fgi);
+
+  $('h-mcap').textContent = fmtK(oc.market_cap);
+  $('h-dom').textContent = oc.dominance!=null?'BTC Dominance '+oc.dominance+'%':'—';
+
+  $('h-ath').textContent = fmtPct(oc.ath_change_pct,false);
+  $('h-ath').style.color = (oc.ath_change_pct||0)<-10?'var(--muted)':'var(--noise)';
+  $('h-ath-price').textContent = 'ATH: $'+fmt(oc.ath);
+
+  $('h-halving').innerHTML = `<span class="halving">${oc.halving_cycle_phase||'—'}</span>`;
+
+  // VuManChu
+  const sKey = sigClass(vu.signal);
+  $('vu-signal-badge').innerHTML = `<div class="sig ${sKey}">${vu.signal||'—'}</div>`;
+  $('vu-zone-badge').innerHTML = `<div class="zone ${zoneClass(vu.zone)}">${vu.zone||'—'}</div>`;
+  $('vu-metrics').innerHTML = [
+    {label:'WT1',val:vu.wt1,c:'btc'},
+    {label:'WT2',val:vu.wt2,c:'btc'},
+    {label:'MFI',val:vu.mfi,c:vu.mfi>0?'pos':vu.mfi<0?'neg':'neutral'},
+    {label:'RSI',val:vu.rsi,c:vu.rsi>70?'neg':vu.rsi<30?'pos':'gold'},
+  ].map(m=>`<div class="metric"><div class="m-label">${m.label}</div><div class="m-val ${m.c}">${m.val!=null?Number(m.val).toFixed(1):'—'}</div></div>`).join('');
+
+  const boolFields = [
+    {key:'buy_signal',label:'Buy Dot'},
+    {key:'strong_buy',label:'Strong Buy'},
+    {key:'sell_signal',label:'Sell Dot'},
+    {key:'strong_sell',label:'Strong Sell'},
+    {key:'bullish_divergence',label:'Bull Div'},
+    {key:'bearish_divergence',label:'Bear Div'},
+  ];
+  $('vu-bools').innerHTML = boolFields.map(f=>
+    `<div class="bool-tag ${vu[f.key]?'on':'off'}">${vu[f.key]?'◆':'○'} ${f.label}</div>`
+  ).join('');
+
+  // VPA
+  const sent = vpaSentiment(vp.dominant_signal);
+  $('vpa-sig-label').textContent = vpaLabel(vp.dominant_signal);
+  $('vpa-sig-label').className = 'vpa-sig '+sent;
+  $('vpa-trend-badge').innerHTML = `<span class="trend ${trendClass(vp.trend)}">${trendLabel(vp.trend)}</span>`;
+
+  const pn = $('prox-note');
+  if(vp.proximity_note){ pn.textContent = '⚠ '+vp.proximity_note; pn.classList.add('vis'); }
+  else pn.classList.remove('vis');
+
+  $('sr-res').innerHTML = (vp.resistance_levels||[]).map((l,i)=>
+    `<span class="sr-pill res${i===0?' near':''}">${'$'+fmt(l)}</span>`
+  ).join('');
+  $('sr-sup').innerHTML = (vp.support_levels||[]).map((l,i)=>
+    `<span class="sr-pill sup${i===0?' near':''}">${'$'+fmt(l)}</span>`
+  ).join('');
+
+  $('ema-row').innerHTML = [
+    {label:'EMA 20',val:vp.ema_20},
+    {label:'EMA 50',val:vp.ema_50},
+    {label:'EMA 200',val:vp.ema_200},
+  ].map(e=>`<div class="ema-item"><span>${e.label}:</span> $${fmt(e.val)}</div>`).join('');
+
+  // AI
+  $('cycle-text').textContent = an.cycle_summary||'—';
+  const risk = (an.risk_assessment||'').replace(' ','_');
+  $('risk-badge').innerHTML = `<div class="risk ${risk}">${an.risk_assessment||'—'}</div>`;
+  $('risk-rationale').textContent = an.risk_rationale||'—';
+
+  $('insights-list').innerHTML = (an.ai_insights||[]).map((ins,i)=>{
+    const isConf = i===5;
+    return `<div class="insight-item">
+      <div class="ins-num">${i+1}</div>
+      <div class="ins-text ${isConf?'confluence':''}">${ins}</div>
+    </div>`;
+  }).join('');
+
+  // Candles
+  $('candle-body').innerHTML = (d.recent_candles||[]).map(c=>{
+    const cls = c.is_bull?'bull-row':'bear-row';
+    const dir = c.is_bull?'▲ Bull':'▼ Bear';
+    const ts  = c.timestamp?c.timestamp.substring(0,10):'—';
+    return `<tr class="${cls}">
+      <td>${ts}</td>
+      <td>${dir}</td>
+      <td class="candle-sig">${vpaLabel(c.signal)}</td>
+      <td>${c.vol_label||'—'}</td>
+      <td>${c.vol_ratio!=null?Number(c.vol_ratio).toFixed(2)+'x':'—'}</td>
+      <td>${c.body_pct!=null?c.body_pct+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  $('placeholder').style.display = 'none';
+  $('results').style.display    = 'block';
+}
+
+// ── RUN ──────────────────────────────────────────────────
+async function runAnalysis(){
+  const btn   = $('run-btn');
+  const stat  = $('status');
+  const range = $('sel-range').value;
+  const intv  = $('sel-interval').value;
+
+  btn.disabled = true;
+  stat.className = 'loading';
+  stat.textContent = 'Fetching data…';
+
+  try {
+    const res = await fetch(`/api/analyse?range=${range}&interval=${intv}`);
+    const data = await res.json();
+    if(data.status === 'error') throw new Error(data.message);
+    stat.className = '';
+    stat.textContent = 'Last updated: '+new Date().toLocaleTimeString();
+    render(data);
+  } catch(e) {
+    stat.className = 'error';
+    stat.textContent = '✕ '+e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
