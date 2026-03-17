@@ -545,8 +545,9 @@ function render(d){
   $('risk-badge').innerHTML = `<div class="risk ${risk}">${an.risk_assessment||'—'}</div>`;
   $('risk-rationale').textContent = an.risk_rationale||'—';
 
-  $('insights-list').innerHTML = (an.ai_insights||[]).map((ins,i)=>{
-    const isConf = i===5;
+  const insights = an.ai_insights||[];
+  $('insights-list').innerHTML = insights.map((ins,i)=>{
+    const isConf = i === insights.length - 1;
     return `<div class="insight-item">
       <div class="ins-num">${i+1}</div>
       <div class="ins-text ${isConf?'confluence':''}">${ins}</div>

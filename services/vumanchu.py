@@ -36,7 +36,19 @@ _DIV_LOOKBACK = 20
 _DIV_PIVOT_GAP = 3
 
 
+_NEUTRAL_RESULT: Dict[str, Any] = {
+    "wt1": 0.0, "wt2": 0.0, "mfi": 0.0, "rsi": 50.0,
+    "zone": "Neutral", "signal": "HOLD / WATCH",
+    "buy_signal": False, "sell_signal": False,
+    "strong_buy": False, "strong_sell": False,
+    "bullish_divergence": False, "bearish_divergence": False,
+}
+
+
 def compute_vumanchu(candles: List[Dict]) -> Dict[str, Any]:
+    if not candles:
+        return dict(_NEUTRAL_RESULT)
+
     df = pd.DataFrame(candles)
 
     close = df["close"].astype(float)

@@ -10,6 +10,7 @@ Then open: http://localhost:8080
 
 import json
 from flask import Flask, jsonify, render_template, request
+from flask_cors import CORS
 from services.fetcher import fetch_ohlcv
 from services.onchain import fetch_onchain_data
 from services.vumanchu import compute_vumanchu
@@ -17,6 +18,7 @@ from services.vpa import compute_vpa
 from services.analyst import generate_btc_analysis
 
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route("/")

@@ -43,7 +43,22 @@ _SIGNAL_PRIORITY: List[str] = [
 ]
 
 
+_NEUTRAL_RESULT: Dict[str, Any] = {
+    "dominant_signal": "neutral",
+    "support_levels": [], "resistance_levels": [],
+    "nearest_support": None, "nearest_resistance": None,
+    "pct_to_support": None, "pct_to_resistance": None,
+    "proximity_note": "",
+    "trend": "ranging", "trend_label": "Insufficient data",
+    "ema_20": 0.0, "ema_50": 0.0, "ema_200": 0.0,
+    "recent_candles": [],
+}
+
+
 def compute_vpa(candles: List[Dict], current_price: float) -> Dict[str, Any]:
+    if not candles:
+        return dict(_NEUTRAL_RESULT)
+
     df = pd.DataFrame(candles)
 
     close = df["close"].astype(float)

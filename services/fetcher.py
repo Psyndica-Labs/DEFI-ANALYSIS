@@ -21,22 +21,35 @@ def fetch_ohlcv(
         interval: candle size ("1d", "4h", "1h", etc.)
 
     Returns:
-        List of dicts with keys: timestamp, open, high, low, close, volume
+        List of dicts with keys: timestamp, open, high, low, close, volume.
+        Returns empty list on any failure.
     """
-    df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
+    try:
+        df = yf.download(ticker, period=period, interval=interval, progress=False)
+    except Exception:
+        return []
+
+    if df is None or df.empty:
+        return []
+
     df = df.dropna()
+    if df.empty:
+        return []
 
     records: List[Dict] = []
     for ts, row in df.iterrows():
-        records.append(
-            {
-                "timestamp": str(ts),
-                "open": float(row["Open"]),
-                "high": float(row["High"]),
-                "low": float(row["Low"]),
-                "close": float(row["Close"]),
-                "volume": float(row["Volume"]),
-            }
-        )
+        try:
+            records.append(
+                {
+                    "timestamp": str(ts),
+                    "open": float(row["Open"]),
+                    "high": float(row["High"]),
+                    "low": float(row["Low"]),
+                    "close": float(row["Close"]),
+                    "volume": float(row["Volume"]),
+                }
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
 
     return records

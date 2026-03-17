@@ -228,20 +228,36 @@ def generate_btc_analysis(data: Dict[str, Any]) -> Dict[str, Any]:
 
     user_payload = json.dumps(data, indent=2, default=str)
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=1024,
-        temperature=0.3,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Analyse this BTC data payload:\n\n{user_payload}",
-            },
-            # Prefill forces the model to open the JSON object immediately.
-            {"role": "assistant", "content": "{"},
-        ],
-    )
+    try:
+        response = _client.messages.create(
+            model=MODEL,
+            max_tokens=2048,
+            temperature=0.3,
+            system=SYSTEM_PROMPT,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Analyse this BTC data payload:\n\n{user_payload}",
+                },
+                # Prefill forces the model to open the JSON object immediately.
+                {"role": "assistant", "content": "{"},
+            ],
+        )
+    except Exception as e:
+        return {
+            "cycle_summary": f"Analysis unavailable — API error: {e}",
+            "ai_insights": [],
+            "risk_assessment": "Unknown",
+            "risk_rationale": "Could not reach analysis model.",
+        }
 
-    raw_text = "{" + response.content[0].text
-    return json.loads(raw_text)
+    try:
+        raw_text = "{" + response.content[0].text
+        return json.loads(raw_text)
+    except (json.JSONDecodeError, IndexError, TypeError) as e:
+        return {
+            "cycle_summary": "Analysis unavailable — malformed response from model.",
+            "ai_insights": [],
+            "risk_assessment": "Unknown",
+            "risk_rationale": f"JSON parse error: {e}",
+        }
